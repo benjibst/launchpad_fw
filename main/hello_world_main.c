@@ -2,9 +2,10 @@
 #include "freertos/FreeRTOS.h"
 #include "MAX98357A.h"
 #include "esp_log.h"
-#include "esp_timer.h"
-#include "esp_task_wdt.h"
-const int64_t BUFLEN = 1 << 10;
+#include "sounds.h"
+#include "wav.h"
+
+static const int16_t quiet[WAV_samplerate / 4] = {0};
 void app_main(void)
 {
     printf("Hello world!\n");
@@ -15,19 +16,28 @@ void app_main(void)
         .SD_PIN = GPIO_NUM_7};
     MAX98357A_handle_t handle;
     MAX98357A_init(&config, &handle);
-    ESP_LOGI("MAX98357A", "MAX98357A initialized");
-    ESP_LOGI("MAX98357A", "Allocating");
-    size_t bufsz = BUFLEN * sizeof(int16_t);
-    int16_t *data = malloc(bufsz);
-    if (!data)
+    WAV_data_t wavs[num_sounds];
+    for (size_t i = 0; i < num_sounds; i++)
     {
-        ESP_LOGE("MAX98357A", "Failed to allocate memory");
-        return;
+        ESP_LOGI("WAV", "Reading sound %d", i);
+        if (WAV_read_bin(sounds[i], *(sound_lengths[i]), &(wavs[i])))
+        {
+            for (size_t j = 0; j < i; j++)
+            {
+                // free all the previously read files
+                free(wavs[j].data);
+            }
+            MAX98357A_close(&handle);
+            return;
+        }
+        WAV_set_volume(&(wavs[i]), 0.1);
     }
-    uint32_t start = 0;
     while (true)
     {
-        generate_sine_wave(data, BUFLEN, 500, MAX98357A_sample_rate, &start);
-        MAX98357A_play(&handle, data, bufsz);
+        for (size_t i = 0; i < num_sounds; i++)
+        {
+            MAX98357A_play(&handle, wavs[i].data, wavs[i].data_sz);
+            MAX98357A_play(&handle, quiet, sizeof(quiet));
+        }
     }
 }

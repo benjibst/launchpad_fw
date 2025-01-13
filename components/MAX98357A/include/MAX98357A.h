@@ -19,6 +19,6 @@ esp_err_t MAX98357A_init(MAX98357A_config_t *config, MAX98357A_handle_t *handle)
 
 void MAX98357A_close(MAX98357A_handle_t *handle);
 
-esp_err_t MAX98357A_play(MAX98357A_handle_t *handle, int16_t *data, size_t len);
+esp_err_t MAX98357A_play(MAX98357A_handle_t *handle, const int16_t *data, size_t len);
 
 void generate_sine_wave(int16_t *data, size_t len, float freq, uint32_t sample_rate, uint32_t *start);
