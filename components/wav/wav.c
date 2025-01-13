@@ -87,11 +87,6 @@ int WAV_check_req(const unsigned char *data, size_t size, size_t *data_sz_out, i
         uint32_t chunk_size;
         memcpy(&chunk_size, next_hdr + 4, 4);
         next_hdr += 8 + chunk_size;
-        if (next_hdr - data >= size)
-        {
-            ESP_LOGE(TAG, "Data chunk not found");
-            return -1;
-        }
     }
     if (next_hdr - data >= size)
     {
