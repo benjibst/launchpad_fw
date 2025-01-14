@@ -16,7 +16,7 @@ for i,f in enumerate(in_files):
     #convert each file to a wav file
     out_name = f"s{i}.wav"
     c_file_name = f"s{i}.c"
-    os.system(f'ffmpeg -i "sounds/in/{f}" -ar 44100 -ac 1 sounds/out/s{i}.wav')
+    os.system(f'ffmpeg -i "sounds/in/{f}" -ar 44100 -ac 2 -c:a pcm_s16le -bitexact sounds/out/s{i}.wav')
     #write the header file
     with open(f"components/sounds/{c_file_name}", "w") as h:
         h.write(f"#include <stddef.h>\n")

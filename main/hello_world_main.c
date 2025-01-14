@@ -16,7 +16,7 @@ void app_main(void)
         .SD_PIN = GPIO_NUM_7};
     MAX98357A_handle_t handle;
     MAX98357A_init(&config, &handle);
-    WAV_data_t wavs[num_sounds];
+    WAV_data_mono16_t wavs[num_sounds];
     for (size_t i = 0; i < num_sounds; i++)
     {
         ESP_LOGI("WAV", "Reading sound %d", i);
@@ -30,7 +30,7 @@ void app_main(void)
             MAX98357A_close(&handle);
             return;
         }
-        WAV_set_volume(&(wavs[i]), 0.1);
+        WAV_set_volume(wavs + i, 0.1);
     }
     while (true)
     {
