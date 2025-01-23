@@ -6,8 +6,19 @@
 #include "wav.h"
 
 static const int16_t quiet[WAV_samplerate / 4] = {0};
+#define LED_PIN GPIO_NUM_15
 void app_main(void)
 {
+    gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
+    printf("Hello world!\n");
+    while (true)
+    {
+        gpio_set_level(LED_PIN, 1);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        gpio_set_level(LED_PIN, 0);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+
     printf("Hello world!\n");
     MAX98357A_config_t config = {
         .LRCLK_pin = GPIO_NUM_4,
