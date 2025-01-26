@@ -1,22 +1,7 @@
-#include <math.h>
 #include "MAX98357A.h"
-#include "esp_err.h"
 #include "esp_log.h"
 
-float PI2 = 2 * M_PI;
-
-void generate_sine_wave(int16_t *data, size_t len, float freq, uint32_t sample_rate, uint32_t *start)
-{
-    const int volume = 1 << 11;
-    uint32_t startval = *start;
-    for (int i = 0; i < len; i++)
-    {
-        data[i] = volume * sinf((PI2 * freq * (i + startval)) / sample_rate);
-    }
-    *start += len;
-}
-
-esp_err_t MAX98357A_init(MAX98357A_config_t *config, MAX98357A_handle_t *handle)
+esp_err_t MAX98357A_init(const MAX98357A_config_t *config, MAX98357A_handle_t *handle)
 {
     ESP_LOGI("MAX98357A", "Initializing MAX98357A");
     ESP_ERROR_CHECK(gpio_set_direction(config->SD_PIN, GPIO_MODE_OUTPUT));
@@ -52,26 +37,27 @@ esp_err_t MAX98357A_init(MAX98357A_config_t *config, MAX98357A_handle_t *handle)
     ESP_ERROR_CHECK(i2s_channel_enable(tx_handle));
 
     handle->tx_handle = tx_handle;
-    handle->cfg = *config;
     ESP_LOGI("MAX98357A", "MAX98357A initialized");
     return ESP_OK;
 }
 
-void MAX98357A_close(MAX98357A_handle_t *handle)
+void MAX98357A_close(MAX98357A_handle_t *handle, const MAX98357A_config_t *config)
 {
-    gpio_set_level(handle->cfg.SD_PIN, 0);
+    gpio_set_level(config->SD_PIN, 0);
     ESP_ERROR_CHECK(i2s_channel_disable(handle->tx_handle));
     ESP_ERROR_CHECK(i2s_del_channel(handle->tx_handle));
 }
 
-esp_err_t MAX98357A_play(MAX98357A_handle_t *handle, const int16_t *data, size_t len)
+esp_err_t MAX98357A_play(MAX98357A_handle_t *handle, const MAX98357A_config_t *config, const int16_t *data, size_t len)
 {
     size_t bytes_written = 0;
+    gpio_set_level(config->SD_PIN, 1);
     ESP_ERROR_CHECK(i2s_channel_write(handle->tx_handle, data, len, &bytes_written, 1000));
     if (bytes_written != len)
     {
         ESP_LOGE("MAX98357A", "Failed to write all data");
         return ESP_FAIL;
     }
+    gpio_set_level(config->SD_PIN, 0);
     return ESP_OK;
 }
