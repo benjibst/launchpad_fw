@@ -1,5 +1,8 @@
 #include "launchpad_hal.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+
+#define TAG __FILE__
 
 const I2C_bus_pins_t i2c_bus_pins = {.SDA = GPIO_NUM_39,
                                      .SCL = GPIO_NUM_21};
@@ -12,20 +15,25 @@ const MAX98357A_config_t amp_config = {
 
 const MCP23017_config_t io1_config = {
     .addr = 0b0100000,
-    .scl_speed = 400000,
+    .scl_speed = 100000,
 };
 
 const MCP23017_config_t io2_config = {
     .addr = 0b0100001,
-    .scl_speed = 400000,
+    .scl_speed = 100000,
 };
 const gpio_num_t status_led = GPIO_NUM_15;
+
+const CY8CMBR3116_config_t touch_config = {
+    .addr = 0x37,
+    .scl_speed = 100000,
+    .CHANGE_pin = GPIO_NUM_38};
 
 // io1: A:LED
 // io1: B:button
 esp_err_t launchpad_hal_setup_io1(Launchpad_handle_t *handle)
 {
-    ESP_LOGI("launchpad_hal", "Setting up IO1");
+    ESP_LOGI(TAG, "Setting up IO1");
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io1_handle, MCP23017_IODIRA, 0x00));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io1_handle, MCP23017_GPPUB, 0xFF));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io1_handle, MCP23017_GPINTENB, 0xFF));
@@ -38,7 +46,7 @@ esp_err_t launchpad_hal_setup_io1(Launchpad_handle_t *handle)
 // io2: A:3-7:button
 esp_err_t launchpad_hal_setup_io2(Launchpad_handle_t *handle)
 {
-    ESP_LOGI("launchpad_hal", "Setting up IO2");
+    ESP_LOGI(TAG, "Setting up IO2");
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_IODIRB, 0x0F));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_IODIRA, 0b11111110));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_GPPUA, 0b11111110));
@@ -79,6 +87,7 @@ esp_err_t launchpad_hal_init(Launchpad_handle_t *handle)
         .flags.enable_internal_pullup = false,
     };
     i2c_master_bus_handle_t bus;
+
     ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_mst_config, &bus));
 
     ESP_ERROR_CHECK(i2c_master_probe(bus, io1_config.addr, 1000));
@@ -88,5 +97,7 @@ esp_err_t launchpad_hal_init(Launchpad_handle_t *handle)
     ESP_ERROR_CHECK(i2c_master_probe(bus, io2_config.addr, 1000));
     ESP_ERROR_CHECK(MCP23017_init(bus, &io2_config, &handle->io2_handle));
     ESP_ERROR_CHECK(launchpad_hal_setup_io2(handle));
+
+    ESP_ERROR_CHECK(CY8CMBR3116_init(bus, &touch_config, &handle->touch_handle));
     return ESP_OK;
 }

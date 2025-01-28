@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include "freertos/FreeRTOS.h"
 #include "esp_log.h"
 #include "sounds.h"
 #include "wav.h"

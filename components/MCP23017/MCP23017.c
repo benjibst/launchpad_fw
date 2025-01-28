@@ -1,16 +1,17 @@
 #include "MCP23017.h"
 #include "esp_log.h"
 
+#define TAG __FILE__
+
 esp_err_t MCP23017_init(i2c_master_bus_handle_t bus, const MCP23017_config_t *cfg, MCP23017_handle_t *handle)
 {
-    ESP_LOGI("MCP23017", "Initializing MCP23017");
     i2c_device_config_t config = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address = cfg->addr,
         .scl_speed_hz = cfg->scl_speed,
     };
     ESP_ERROR_CHECK(i2c_master_bus_add_device(bus, &config, &handle->i2c_slave));
-    ESP_LOGI("MCP23017", "MCP23017 added to i2c bus");
+    ESP_LOGI(TAG, "MCP23017 added to i2c bus");
     return ESP_OK;
 }
 

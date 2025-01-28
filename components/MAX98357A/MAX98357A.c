@@ -1,9 +1,11 @@
 #include "MAX98357A.h"
 #include "esp_log.h"
 
+#define TAG __FILE__
+
 esp_err_t MAX98357A_init(const MAX98357A_config_t *config, MAX98357A_handle_t *handle)
 {
-    ESP_LOGI("MAX98357A", "Initializing MAX98357A");
+    ESP_LOGI(TAG, "Initializing MAX98357A");
     ESP_ERROR_CHECK(gpio_set_direction(config->SD_PIN, GPIO_MODE_OUTPUT));
     ESP_ERROR_CHECK(gpio_set_level(config->SD_PIN, 1));
 
@@ -37,7 +39,7 @@ esp_err_t MAX98357A_init(const MAX98357A_config_t *config, MAX98357A_handle_t *h
     ESP_ERROR_CHECK(i2s_channel_enable(tx_handle));
 
     handle->tx_handle = tx_handle;
-    ESP_LOGI("MAX98357A", "MAX98357A initialized");
+    ESP_LOGI(TAG, "MAX98357A initialized");
     return ESP_OK;
 }
 
@@ -55,7 +57,7 @@ esp_err_t MAX98357A_play(MAX98357A_handle_t *handle, const MAX98357A_config_t *c
     ESP_ERROR_CHECK(i2s_channel_write(handle->tx_handle, data, len, &bytes_written, 1000));
     if (bytes_written != len)
     {
-        ESP_LOGE("MAX98357A", "Failed to write all data");
+        ESP_LOGE(TAG, "Failed to write all data");
         return ESP_FAIL;
     }
     gpio_set_level(config->SD_PIN, 0);

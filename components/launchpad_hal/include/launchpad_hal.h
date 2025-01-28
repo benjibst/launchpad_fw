@@ -1,5 +1,7 @@
 #include "MCP23017.h"
 #include "MAX98357A.h"
+#include "CY8CMBR3116.h"
+
 typedef struct
 {
     gpio_num_t SDA;
@@ -17,6 +19,7 @@ typedef struct
     MAX98357A_handle_t amp_handle;
     MCP23017_handle_t io1_handle;
     MCP23017_handle_t io2_handle;
+    CY8CMBR3116_handle_t touch_handle;
     i2c_master_bus_handle_t i2c_bus;
 } Launchpad_handle_t;
 
