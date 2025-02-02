@@ -40,6 +40,14 @@ typedef struct
     i2c_master_dev_handle_t i2c_slave;
 } MCP23017_handle_t;
 
-esp_err_t MCP23017_init(i2c_master_bus_handle_t bus, const MCP23017_config_t *cfg, MCP23017_handle_t *handle);
+typedef struct
+{
+    uint8_t intfa, intfb;
+    uint8_t intcapa, intcapb;
+} MCP23017_int_regs_t;
+
+esp_err_t
+MCP23017_init(i2c_master_bus_handle_t bus, const MCP23017_config_t *cfg, MCP23017_handle_t *handle);
 esp_err_t MCP23017_write_reg(MCP23017_handle_t *handle, MCP23017_regaddr_t reg, uint8_t data);
 esp_err_t MCP23017_read_reg(MCP23017_handle_t *handle, MCP23017_regaddr_t reg, uint8_t *data);
+esp_err_t MCP23017_read_int_regs(MCP23017_handle_t *handle, MCP23017_int_regs_t *regs);

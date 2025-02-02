@@ -8,6 +8,12 @@ typedef struct
     gpio_num_t SCL;
 } I2C_bus_pins_t;
 
+typedef struct
+{
+    uint32_t prev;
+    uint32_t curr;
+} ButtonState_t;
+
 extern const I2C_bus_pins_t i2c_bus_pins;
 extern const MAX98357A_config_t amp_config;
 extern const MCP23017_config_t io1_config;
@@ -28,3 +34,4 @@ esp_err_t launchpad_hal_disable_all_led(Launchpad_handle_t *handle);
 esp_err_t launchpad_hal_enable_all_led(Launchpad_handle_t *handle);
 esp_err_t launchpad_hal_setup_io2(Launchpad_handle_t *handle);
 esp_err_t launchpad_hal_setup_io1(Launchpad_handle_t *handle);
+esp_err_t launchpad_hal_input_loop(Launchpad_handle_t *handle, ButtonState_t *state);

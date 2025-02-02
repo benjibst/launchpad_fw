@@ -3,6 +3,10 @@
 #include "sounds.h"
 #include "wav.h"
 #include "launchpad_hal.h"
+#include "freertos/FreeRTOS.h"
+#include "esp_log.h"
+
+#define TAG __FILE__
 
 static const int16_t quiet[WAV_samplerate] = {0};
 

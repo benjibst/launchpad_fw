@@ -27,3 +27,10 @@ esp_err_t MCP23017_read_reg(MCP23017_handle_t *handle, MCP23017_regaddr_t reg, u
     ESP_ERROR_CHECK(i2c_master_transmit_receive(handle->i2c_slave, buf, 1, data, 1, 100));
     return ESP_OK;
 }
+
+esp_err_t MCP23017_read_int_regs(MCP23017_handle_t *handle, MCP23017_int_regs_t *regs)
+{
+    uint8_t buf[1] = {MCP23017_INTFA};
+    ESP_ERROR_CHECK(i2c_master_transmit_receive(handle->i2c_slave, buf, 1, &regs->intfa, sizeof(MCP23017_int_regs_t), 100));
+    return ESP_OK;
+}
