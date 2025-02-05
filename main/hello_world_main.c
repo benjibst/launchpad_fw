@@ -14,6 +14,7 @@ void app_main(void)
 {
     Launchpad_handle_t hw_handle;
     ESP_ERROR_CHECK(launchpad_hal_init(&hw_handle));
+    xTaskCreatePinnedToCore(launchpad_hal_input_task, "input_task", (1 << 12), &hw_handle, 10, NULL, 1);
     WAV_data_mono16_t wavs[num_sounds];
     for (size_t i = 0; i < num_sounds; i++)
     {
@@ -28,15 +29,13 @@ void app_main(void)
             MAX98357A_close(&hw_handle.amp_handle, &amp_config);
             return;
         }
-        WAV_set_volume(wavs + i, 0.1);
+        WAV_set_volume(wavs + i, 0.02);
     }
     while (true)
     {
         for (size_t i = 0; i < num_sounds; i++)
         {
-            launchpad_hal_enable_all_led(&hw_handle);
             MAX98357A_play(&hw_handle.amp_handle, &amp_config, wavs[i].data, wavs[i].data_sz);
-            launchpad_hal_disable_all_led(&hw_handle);
             MAX98357A_play(&hw_handle.amp_handle, &amp_config, quiet, sizeof(quiet));
         }
     }

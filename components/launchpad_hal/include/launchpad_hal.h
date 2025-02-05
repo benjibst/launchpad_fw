@@ -1,6 +1,6 @@
 #include "MCP23017.h"
 #include "MAX98357A.h"
-#include "CY8CMBR3116.h"
+#include "SDMMC.h"
 
 typedef struct
 {
@@ -10,14 +10,23 @@ typedef struct
 
 typedef struct
 {
-    uint32_t prev;
-    uint32_t curr;
+    uint8_t IO1_GPB;
+    uint8_t IO2_GPA;
 } ButtonState_t;
+
+typedef struct
+{
+    uint8_t IO1_GPA;
+    uint8_t IO2_GPB;
+    uint8_t IO2_GPA;
+    uint8_t STATUS;
+} LedState_t;
 
 extern const I2C_bus_pins_t i2c_bus_pins;
 extern const MAX98357A_config_t amp_config;
 extern const MCP23017_config_t io1_config;
 extern const MCP23017_config_t io2_config;
+extern const SDMMC_config_t sdmmc_config;
 extern const gpio_num_t status_led;
 
 typedef struct
@@ -25,13 +34,11 @@ typedef struct
     MAX98357A_handle_t amp_handle;
     MCP23017_handle_t io1_handle;
     MCP23017_handle_t io2_handle;
-    CY8CMBR3116_handle_t touch_handle;
     i2c_master_bus_handle_t i2c_bus;
+    SDMMC_handle_t sdmmc_handle;
 } Launchpad_handle_t;
 
 esp_err_t launchpad_hal_init(Launchpad_handle_t *handle);
-esp_err_t launchpad_hal_disable_all_led(Launchpad_handle_t *handle);
-esp_err_t launchpad_hal_enable_all_led(Launchpad_handle_t *handle);
 esp_err_t launchpad_hal_setup_io2(Launchpad_handle_t *handle);
 esp_err_t launchpad_hal_setup_io1(Launchpad_handle_t *handle);
-esp_err_t launchpad_hal_input_loop(Launchpad_handle_t *handle, ButtonState_t *state);
+void launchpad_hal_input_task(void *args);
