@@ -1,18 +1,13 @@
 #include "MCP23017.h"
 #include "MAX98357A.h"
 #include "SDMMC.h"
+#include "button_defs.h"
 
 typedef struct
 {
     gpio_num_t SDA;
     gpio_num_t SCL;
 } I2C_bus_pins_t;
-
-typedef struct
-{
-    uint8_t IO1_GPB;
-    uint8_t IO2_GPA;
-} ButtonState_t;
 
 typedef struct
 {
@@ -36,6 +31,7 @@ typedef struct
     MCP23017_handle_t io2_handle;
     i2c_master_bus_handle_t i2c_bus;
     SDMMC_handle_t sdmmc_handle;
+    ButtonState_t button_state;
 } Launchpad_handle_t;
 
 esp_err_t launchpad_hal_init(Launchpad_handle_t *handle);

@@ -5,8 +5,10 @@
 #include "sdmmc_cmd.h"
 
 #define TAG __FILE__
-esp_err_t SDMMC_init(SDMMC_config_t *cfg, SDMMC_handle_t *handle, const char *mountpoint)
+static const char *mountpoint = "/sdcard";
+esp_err_t SDMMC_init(const SDMMC_config_t *cfg, SDMMC_handle_t *handle)
 {
+    handle->mountpoint = mountpoint;
     esp_vfs_fat_mount_config_t mount_config = {
         .format_if_mount_failed = true,
         .max_files = 128,
@@ -42,5 +44,26 @@ esp_err_t SDMMC_init(SDMMC_config_t *cfg, SDMMC_handle_t *handle, const char *mo
         return ESP_FAIL;
     }
     sdmmc_card_print_info(stdout, handle->card);
+    return ESP_OK;
+}
+
+esp_err_t SDMMC_write_file(SDMMC_handle_t *handle, const char *filename, const void *data, size_t size)
+{
+    char filepath[64];
+    snprintf(filepath, sizeof(filepath), "%s/%s", handle->mountpoint, filename);
+    ESP_LOGI(TAG, "Writing file %s", filepath);
+    FILE *f = fopen(filename, "wb");
+    if (f == NULL)
+    {
+        ESP_LOGE(TAG, "Failed to open file for writing");
+        return ESP_FAIL;
+    }
+    if (fwrite(data, 1, size, f) != size)
+    {
+        ESP_LOGE(TAG, "Failed to write file");
+        fclose(f);
+        return ESP_FAIL;
+    }
+    fclose(f);
     return ESP_OK;
 }

@@ -43,6 +43,14 @@ static void IRAM_ATTR gpio_isr_handler(void *arg)
     xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
 }
 
+void print_bin(uint8_t val)
+{
+    for (int i = 7; i >= 0; i--)
+    {
+        printf("%d", (val >> i) & 1);
+    }
+    printf("\n");
+}
 void launchpad_hal_input_task(void *args)
 {
     gpio_num_t io_num;
@@ -51,6 +59,22 @@ void launchpad_hal_input_task(void *args)
     ESP_ERROR_CHECK(gpio_install_isr_service(0));
     ESP_ERROR_CHECK(gpio_isr_handler_add(io1_config.INTB_pin, gpio_isr_handler, (void *)IO1_INTB_PIN));
     ESP_ERROR_CHECK(gpio_isr_handler_add(io2_config.INTA_pin, gpio_isr_handler, (void *)IO2_INTA_PIN));
+    ButtonState_t curr_state;
+    while (true)
+    {
+        MCP23017_read_reg(&hw_handle->io1_handle, MCP23017_GPIOB, &curr_state.IO1_GPB);
+        MCP23017_read_reg(&hw_handle->io2_handle, MCP23017_GPIOA, &curr_state.IO2_GPA);
+        if (curr_state.IO1_GPB != hw_handle->button_state.IO1_GPB)
+        {
+            print_button_pressed(curr_state, hw_handle->button_state);
+            hw_handle->button_state.IO1_GPB = curr_state.IO1_GPB;
+        }
+        if (curr_state.IO2_GPA != hw_handle->button_state.IO2_GPA)
+        {
+            print_button_pressed(curr_state, hw_handle->button_state);
+            hw_handle->button_state.IO2_GPA = curr_state.IO2_GPA;
+        }
+    }
     while (true)
     {
         ESP_LOGI(TAG, "Waiting for interrupt");
@@ -121,6 +145,8 @@ esp_err_t launchpad_hal_setup_io1(Launchpad_handle_t *handle)
     ESP_ERROR_CHECK(gpio_config(&cfg));
     //  Set all pins as input
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io1_handle, MCP23017_IODIRA, 0x00));
+    // Inverted input logic state (buttons pull down)
+    ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io1_handle, MCP23017_IPOLB, 0xFF));
     // Enable pull-up resistors
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io1_handle, MCP23017_GPPUB, 0xFF));
     // Enable interrupt on change
@@ -145,6 +171,7 @@ esp_err_t launchpad_hal_setup_io2(Launchpad_handle_t *handle)
     ESP_ERROR_CHECK(gpio_config(&cfg));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_IODIRB, 0x0F));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_IODIRA, 0b11111110));
+    ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_IPOLA, 0b11111110));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_GPPUA, 0b11111110));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_GPINTENA, 0b11111110));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_IOCON, 0b00000100));
@@ -153,7 +180,11 @@ esp_err_t launchpad_hal_setup_io2(Launchpad_handle_t *handle)
 
 esp_err_t launchpad_hal_init(Launchpad_handle_t *handle)
 {
+    handle->button_state.IO1_GPB = 0;
+    handle->button_state.IO2_GPA = 0;
+
     ESP_ERROR_CHECK(gpio_set_direction(status_led, GPIO_MODE_OUTPUT));
+    gpio_set_level(status_led, 1);
 
     ESP_ERROR_CHECK(MAX98357A_init(&amp_config, &handle->amp_handle));
 
@@ -184,7 +215,6 @@ esp_err_t launchpad_hal_init(Launchpad_handle_t *handle)
     ESP_ERROR_CHECK(MCP23017_init(bus, &io2_config, &handle->io2_handle));
     ESP_ERROR_CHECK(launchpad_hal_setup_io2(handle));
 
-    ESP_ERROR_CHECK(SDMMC_init(&sdmmc_config, &handle->sdmmc_handle, "/sdcard"));
-    // ESP_ERROR_CHECK(CY8CMBR3116_init(bus, &touch_config, &handle->touch_handle));
+    ESP_ERROR_CHECK(SDMMC_init(&sdmmc_config, &handle->sdmmc_handle));
     return ESP_OK;
 }
