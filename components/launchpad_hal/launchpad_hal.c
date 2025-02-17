@@ -1,6 +1,8 @@
+
 #include "launchpad_hal.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
+#include <string.h>
 
 #define TAG __FILE__
 
@@ -59,7 +61,7 @@ void launchpad_hal_input_task(void *args)
     ESP_ERROR_CHECK(gpio_install_isr_service(0));
     ESP_ERROR_CHECK(gpio_isr_handler_add(io1_config.INTB_pin, gpio_isr_handler, (void *)IO1_INTB_PIN));
     ESP_ERROR_CHECK(gpio_isr_handler_add(io2_config.INTA_pin, gpio_isr_handler, (void *)IO2_INTA_PIN));
-    ButtonState_t curr_state;
+    Button_state_t curr_state;
     while (true)
     {
         MCP23017_read_reg(&hw_handle->io1_handle, MCP23017_GPIOB, &curr_state.IO1_GPB);
@@ -180,6 +182,7 @@ esp_err_t launchpad_hal_setup_io2(Launchpad_handle_t *handle)
 
 esp_err_t launchpad_hal_init(Launchpad_handle_t *handle)
 {
+    memset(handle, 0, sizeof(Launchpad_handle_t));
     handle->button_state.IO1_GPB = 0;
     handle->button_state.IO2_GPA = 0;
 
@@ -216,5 +219,55 @@ esp_err_t launchpad_hal_init(Launchpad_handle_t *handle)
     ESP_ERROR_CHECK(launchpad_hal_setup_io2(handle));
 
     ESP_ERROR_CHECK(SDMMC_init(&sdmmc_config, &handle->sdmmc_handle));
+
+    launchpad_hal_cycle_leds(handle, 100, 3);
+    return ESP_OK;
+}
+
+void print_binary_memory(const void *mem, size_t size, int width)
+{
+    const unsigned char *bytes = (const unsigned char *)mem;
+
+    for (size_t i = 0; i < size; i++)
+    {
+        // Print byte in binary format
+        for (int j = 7; j >= 0; j--)
+        {
+            printf("%d", (bytes[i] >> j) & 1);
+        }
+        printf(" ");
+
+        if ((i + 1) % width == 0 || i + 1 == size)
+        {
+            printf("\n"); // New line after width bytes or at the end
+        }
+    }
+}
+
+esp_err_t set_and_clear_led(Launchpad_handle_t *hw_handle, uint32_t led, uint32_t delay_ms)
+{
+    ESP_ERROR_CHECK(set_led(&hw_handle->io1_handle, &hw_handle->io2_handle, &hw_handle->led_state, led));
+    vTaskDelay(delay_ms / portTICK_PERIOD_MS);
+    ESP_ERROR_CHECK(clear_led(&hw_handle->io1_handle, &hw_handle->io2_handle, &hw_handle->led_state, led));
+    return ESP_OK;
+}
+esp_err_t launchpad_hal_cycle_leds(Launchpad_handle_t *handle, uint32_t delay_ms, uint32_t cycles)
+{
+    while (cycles-- > 0)
+    {
+        ESP_ERROR_CHECK(set_and_clear_led(handle, TRACK1_LED, delay_ms));
+        ESP_ERROR_CHECK(set_and_clear_led(handle, TRACK2_LED, delay_ms));
+        ESP_ERROR_CHECK(set_and_clear_led(handle, TRACK3_LED, delay_ms));
+        ESP_ERROR_CHECK(set_and_clear_led(handle, PROFILE1_LED, delay_ms));
+        ESP_ERROR_CHECK(set_and_clear_led(handle, PROFILE2_LED, delay_ms));
+        ESP_ERROR_CHECK(set_and_clear_led(handle, PROFILE3_LED, delay_ms));
+        ESP_ERROR_CHECK(set_and_clear_led(handle, EFFECT_LED, delay_ms));
+        ESP_ERROR_CHECK(set_and_clear_led(handle, MASTER_MUTE_LED, delay_ms));
+        ESP_ERROR_CHECK(set_and_clear_led(handle, TRACK1_MUTE_LED, delay_ms));
+        ESP_ERROR_CHECK(set_and_clear_led(handle, TRACK2_MUTE_LED, delay_ms));
+        ESP_ERROR_CHECK(set_and_clear_led(handle, TRACK3_MUTE_LED, delay_ms));
+        ESP_ERROR_CHECK(set_and_clear_led(handle, REC_LED, delay_ms));
+        ESP_ERROR_CHECK(set_and_clear_led(handle, REC_SEQ_LED, delay_ms));
+    }
     return ESP_OK;
 }
