@@ -1,4 +1,4 @@
-#include "hw_include.h"
+#include "hw_config.h"
 
 esp_err_t launchpad_hal_init(Launchpad_handle_t *handle);
 esp_err_t launchpad_hal_cycle_leds(Launchpad_handle_t *handle, uint32_t delay_ms, uint32_t cycles);
