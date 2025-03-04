@@ -5,7 +5,7 @@
 #include "sdmmc_cmd.h"
 
 #define TAG __FILE__
-static const char *mountpoint = "/sdcard";
+static const char *mountpoint = "/sd";
 esp_err_t SDMMC_init(const SDMMC_config_t *cfg, SDMMC_handle_t *handle)
 {
     handle->mountpoint = mountpoint;
@@ -37,9 +37,7 @@ esp_err_t SDMMC_init(const SDMMC_config_t *cfg, SDMMC_handle_t *handle)
         }
         else
         {
-            ESP_LOGE(TAG, "Failed to initialize the card (%s). "
-                          "Make sure SD card lines have pull-up resistors in place.",
-                     esp_err_to_name(ret));
+            ESP_LOGE(TAG, "Failed to initialize the card (%s). ", esp_err_to_name(ret));
         }
         return ESP_FAIL;
     }
@@ -55,7 +53,9 @@ esp_err_t SDMMC_write_file(SDMMC_handle_t *handle, const char *filename, const v
     FILE *f = fopen(filename, "wb");
     if (f == NULL)
     {
-        ESP_LOGE(TAG, "Failed to open file for writing");
+        // print error message
+
+        ESP_LOGE(TAG, "Failed to open file for writing %s", esp_err_to_name(ESP_FAIL));
         return ESP_FAIL;
     }
     if (fwrite(data, 1, size, f) != size)
