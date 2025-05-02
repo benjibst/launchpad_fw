@@ -8,6 +8,8 @@
 static const char *mountpoint = "/sd";
 esp_err_t SDMMC_init(const SDMMC_config_t *cfg, SDMMC_handle_t *handle)
 {
+    esp_err_t ret;
+    ESP_LOGI(TAG, "Initializing SD card");
     handle->mountpoint = mountpoint;
     esp_vfs_fat_mount_config_t mount_config = {
         .format_if_mount_failed = true,
@@ -27,21 +29,14 @@ esp_err_t SDMMC_init(const SDMMC_config_t *cfg, SDMMC_handle_t *handle)
     slot_config.d2 = cfg->d2;
     slot_config.d3 = cfg->d3;
     slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
-    esp_err_t ret = esp_vfs_fat_sdmmc_mount(mountpoint, &host, &slot_config, &mount_config, &handle->card);
+    ret = sdmmc_card_init(&host, &handle->card);
     if (ret != ESP_OK)
     {
-        if (ret == ESP_FAIL)
-        {
-            ESP_LOGE(TAG, "Failed to mount filesystem. "
-                          "If you want the card to be formatted, set the EXAMPLE_FORMAT_IF_MOUNT_FAILED menuconfig option.");
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to initialize the card (%s). ", esp_err_to_name(ret));
-        }
-        return ESP_FAIL;
+        ESP_LOGE(TAG, "Failed to initialize the card");
+        return ret;
     }
-    sdmmc_card_print_info(stdout, handle->card);
+    sdmmc_card_print_info(stdout, &handle->card);
+    printf("Status: %d\n", sdmmc_get_status(&handle->card));
     return ESP_OK;
 }
 

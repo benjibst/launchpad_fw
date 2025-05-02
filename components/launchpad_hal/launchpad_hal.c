@@ -219,7 +219,9 @@ esp_err_t launchpad_hal_init(Launchpad_handle_t *handle)
     ESP_ERROR_CHECK(MCP23017_init(bus, &io2_config, &handle->io2_handle));
     ESP_ERROR_CHECK(launchpad_hal_setup_io2(handle));
 
+    esp_log_level_set("*", ESP_LOG_VERBOSE);
     ESP_ERROR_CHECK(SDMMC_init(&sdmmc_config, &handle->sdmmc_handle));
+    esp_log_level_set("*", ESP_LOG_INFO);
 
     ESP_ERROR_CHECK(launchpad_hal_cycle_leds(handle, 200, 1));
 
