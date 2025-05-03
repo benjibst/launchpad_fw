@@ -5,6 +5,7 @@
 #include "launchpad_hal.h"
 #include "freertos/FreeRTOS.h"
 #include "esp_log.h"
+#include <string.h>
 
 #define TAG __FILE__
 
@@ -30,9 +31,9 @@ void app_main(void)
             return;
         }
         WAV_set_volume(wavs + i, 0.02);
-        // char filename[16];
-        // snprintf(filename, sizeof(filename), "sound%d.wav", i);
-        // ESP_LOGI(TAG, "Writing sound %d to file %s", i, filename);
+        char filename[16];
+        snprintf(filename, sizeof(filename), "sound%d.wav", i);
+        ESP_LOGI(TAG, "Writing sound %d to file %s", i, filename);
         // ESP_ERROR_CHECK(SDMMC_write_file(&hw_handle.sdmmc_handle, filename, wavs[i].data, wavs[i].data_sz));
     }
     while (true)

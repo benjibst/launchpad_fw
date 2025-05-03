@@ -5,7 +5,7 @@
 #include "sdmmc_cmd.h"
 
 #define TAG __FILE__
-static const char *mountpoint = "/sd";
+static const char *mountpoint = "/fat";
 esp_err_t SDMMC_init(const SDMMC_config_t *cfg, SDMMC_handle_t *handle)
 {
     handle->mountpoint = mountpoint;
@@ -50,7 +50,7 @@ esp_err_t SDMMC_write_file(SDMMC_handle_t *handle, const char *filename, const v
     char filepath[64];
     snprintf(filepath, sizeof(filepath), "%s/%s", handle->mountpoint, filename);
     ESP_LOGI(TAG, "Writing file %s", filepath);
-    FILE *f = fopen(filename, "wb");
+    FILE *f = fopen(filepath, "wb");
     if (f == NULL)
     {
         // print error message
@@ -61,6 +61,37 @@ esp_err_t SDMMC_write_file(SDMMC_handle_t *handle, const char *filename, const v
     if (fwrite(data, 1, size, f) != size)
     {
         ESP_LOGE(TAG, "Failed to write file");
+        fclose(f);
+        return ESP_FAIL;
+    }
+    fclose(f);
+    return ESP_OK;
+}
+esp_err_t SDMMC_read_file(SDMMC_handle_t *handle, const char *filename, void **data, size_t *size)
+{
+    char filepath[64];
+    snprintf(filepath, sizeof(filepath), "%s/%s", handle->mountpoint, filename);
+    ESP_LOGI(TAG, "Reading file %s", filepath);
+    FILE *f = fopen(filepath, "rb");
+    if (f == NULL)
+    {
+        ESP_LOGE(TAG, "Failed to open file for reading %s", esp_err_to_name(ESP_FAIL));
+        return ESP_FAIL;
+    }
+    fseek(f, 0, SEEK_END);
+    *size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    *data = malloc(*size);
+    if (*data == NULL)
+    {
+        ESP_LOGE(TAG, "Failed to allocate memory for file data");
+        fclose(f);
+        return ESP_FAIL;
+    }
+    if (fread(*data, 1, *size, f) != *size)
+    {
+        ESP_LOGE(TAG, "Failed to read file data");
+        free(*data);
         fclose(f);
         return ESP_FAIL;
     }

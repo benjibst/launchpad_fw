@@ -20,3 +20,4 @@ typedef struct
 
 esp_err_t SDMMC_init(const SDMMC_config_t *cfg, SDMMC_handle_t *handle);
 esp_err_t SDMMC_write_file(SDMMC_handle_t *handle, const char *filename, const void *data, size_t size);
+esp_err_t SDMMC_read_file(SDMMC_handle_t *handle, const char *filename, void **data, size_t *size);
