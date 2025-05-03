@@ -34,7 +34,35 @@ void app_main(void)
         char filename[16];
         snprintf(filename, sizeof(filename), "sound%d.wav", i);
         ESP_LOGI(TAG, "Writing sound %d to file %s", i, filename);
-        // ESP_ERROR_CHECK(SDMMC_write_file(&hw_handle.sdmmc_handle, filename, wavs[i].data, wavs[i].data_sz));
+        // check if writing and reading from the sd card works
+        ESP_ERROR_CHECK(SDMMC_write_file(&hw_handle.sdmmc_handle, filename, wavs[i].data, wavs[i].data_sz));
+        ESP_LOGI(TAG, "Reading sound %d from file %s", i, filename);
+        void *data = NULL;
+        size_t size = 0;
+        ESP_ERROR_CHECK(SDMMC_read_file(&hw_handle.sdmmc_handle, filename, &data, &size));
+        if (data == NULL || size != wavs[i].data_sz)
+        {
+            ESP_LOGE(TAG, "Failed to read sound %d from file %s", i, filename);
+            for (size_t j = 0; j <= i; j++)
+            {
+                free(wavs[j].data);
+            }
+            MAX98357A_close(&hw_handle.amp_handle, &amp_config);
+            return;
+        }
+        if (memcmp(data, wavs[i].data, wavs[i].data_sz) != 0)
+        {
+            ESP_LOGE(TAG, "Data mismatch for sound %d", i);
+            free(data);
+            for (size_t j = 0; j <= i; j++)
+            {
+                free(wavs[j].data);
+            }
+            MAX98357A_close(&hw_handle.amp_handle, &amp_config);
+            return;
+        }
+        free(data);
+        ESP_LOGI(TAG, "Sound %d written and read successfully", i);
     }
     while (true)
     {

@@ -14,7 +14,7 @@ typedef struct
 
 typedef struct
 {
-    sdmmc_card_t card;
+    sdmmc_card_t *card;
     const char *mountpoint;
 } SDMMC_handle_t;
 

@@ -29,14 +29,14 @@ esp_err_t SDMMC_init(const SDMMC_config_t *cfg, SDMMC_handle_t *handle)
     slot_config.d2 = cfg->d2;
     slot_config.d3 = cfg->d3;
     slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
-    ret = sdmmc_card_init(&host, &handle->card);
+    ret = esp_vfs_fat_sdmmc_mount(mountpoint, &host, &slot_config, &mount_config, &handle->card);
     if (ret != ESP_OK)
     {
-        ESP_LOGE(TAG, "Failed to initialize the card");
+        ESP_LOGE(TAG, "Failed to mount filesystem. Error: %s", esp_err_to_name(ret));
         return ret;
     }
-    sdmmc_card_print_info(stdout, &handle->card);
-    printf("Status: %d\n", sdmmc_get_status(&handle->card));
+    sdmmc_card_print_info(stdout, handle->card);
+    printf("Status: %d\n", sdmmc_get_status(handle->card));
     return ESP_OK;
 }
 
@@ -48,8 +48,6 @@ esp_err_t SDMMC_write_file(SDMMC_handle_t *handle, const char *filename, const v
     FILE *f = fopen(filepath, "wb");
     if (f == NULL)
     {
-        // print error message
-
         ESP_LOGE(TAG, "Failed to open file for writing %s", esp_err_to_name(ESP_FAIL));
         return ESP_FAIL;
     }
