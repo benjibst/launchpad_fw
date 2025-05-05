@@ -7,7 +7,7 @@ esp_err_t MCP23017_init(i2c_master_bus_handle_t bus, const MCP23017_config_t *cf
 {
     i2c_device_config_t config = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address = cfg->addr,
+        .device_address = cfg->i2c_addr,
         .scl_speed_hz = cfg->scl_speed,
     };
     ESP_ERROR_CHECK(i2c_master_bus_add_device(bus, &config, &handle->i2c_slave));

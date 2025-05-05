@@ -124,7 +124,7 @@ void launchpad_input_loop_interrupt(Launchpad_handle_t *hw_handle)
     }
 }
 
-#define POLL 1
+#define POLL 0
 void launchpad_hal_input_task(void *args)
 {
     Launchpad_handle_t *hw_handle = (Launchpad_handle_t *)args;
@@ -211,17 +211,18 @@ esp_err_t launchpad_hal_init(Launchpad_handle_t *handle)
         return ESP_FAIL;
     }
 
-    ESP_ERROR_CHECK(i2c_master_probe(bus, io1_config.addr, 1000));
+    ESP_ERROR_CHECK(i2c_master_probe(bus, io1_config.i2c_addr, 1000));
     ESP_ERROR_CHECK(MCP23017_init(bus, &io1_config, &handle->io1_handle));
     ESP_ERROR_CHECK(launchpad_hal_setup_io1(handle));
 
-    ESP_ERROR_CHECK(i2c_master_probe(bus, io2_config.addr, 1000));
+    ESP_ERROR_CHECK(i2c_master_probe(bus, io2_config.i2c_addr, 1000));
     ESP_ERROR_CHECK(MCP23017_init(bus, &io2_config, &handle->io2_handle));
     ESP_ERROR_CHECK(launchpad_hal_setup_io2(handle));
 
-    esp_log_level_set("*", ESP_LOG_VERBOSE);
+    // ESP_ERROR_CHECK(i2c_master_probe(bus, AT42QT2120_I2C_ADDR, 1000));
+    ESP_ERROR_CHECK(AT42QT2120_init(bus, &touch_config, &handle->touch_handle));
+
     ESP_ERROR_CHECK(SDMMC_init(&sdmmc_config, &handle->sdmmc_handle));
-    esp_log_level_set("*", ESP_LOG_INFO);
 
     ESP_ERROR_CHECK(launchpad_hal_cycle_leds(handle, 200, 1));
 

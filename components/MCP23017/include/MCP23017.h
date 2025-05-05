@@ -33,7 +33,7 @@ typedef struct
 {
     gpio_num_t INTA_pin;
     gpio_num_t INTB_pin;
-    uint8_t addr;
+    uint8_t i2c_addr;
     uint32_t scl_speed;
 } MCP23017_config_t;
 

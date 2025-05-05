@@ -8,14 +8,19 @@ const MAX98357A_config_t amp_config = {
     .DIN_pin = GPIO_NUM_4,
     .SD_PIN = GPIO_NUM_7};
 const MCP23017_config_t io1_config = {
-    .addr = 0b0100000,
+    .i2c_addr = 0b0100000,
     .scl_speed = 400000,
     .INTB_pin = GPIO_NUM_8,
 };
 const MCP23017_config_t io2_config = {
-    .addr = 0b0100001,
+    .i2c_addr = 0b0100001,
     .scl_speed = 400000,
     .INTA_pin = GPIO_NUM_45,
+};
+const AT42QT2120_config_t touch_config = {
+    .CHANGE_pin = GPIO_NUM_38,
+    .i2c_addr = AT42QT2120_I2C_ADDR,
+    .scl_speed = 100000,
 };
 const SDMMC_config_t sdmmc_config = {
     .clk = GPIO_NUM_43,
