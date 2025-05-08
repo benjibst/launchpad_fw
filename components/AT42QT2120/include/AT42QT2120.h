@@ -97,5 +97,6 @@ typedef struct
 } AT42QT2120_handle_t;
 
 esp_err_t AT42QT2120_init(i2c_master_bus_handle_t bus, const AT42QT2120_config_t *cfg, AT42QT2120_handle_t *handle);
-esp_err_t AT42QT2120_write_reg(AT42QT2120_handle_t *handle, AT42QT2120_regaddr_t reg, uint8_t data);
-esp_err_t AT42QT2120_read_reg(AT42QT2120_handle_t *handle, AT42QT2120_regaddr_t reg, uint8_t *data);
+esp_err_t AT42QT2120_read(AT42QT2120_handle_t *handle, AT42QT2120_regaddr_t reg, uint8_t *data, size_t sz);
+esp_err_t AT42QT2120_write_1byte(AT42QT2120_handle_t *handle, AT42QT2120_regaddr_t reg, uint8_t data);
+esp_err_t AT42QT2120_write_2bytes(AT42QT2120_handle_t *handle, AT42QT2120_regaddr_t reg, uint16_t data);

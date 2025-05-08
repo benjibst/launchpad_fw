@@ -8,7 +8,7 @@
 
 static QueueHandle_t gpio_evt_queue = NULL;
 
-static void IRAM_ATTR gpio_isr_handler(void *arg)
+static void gpio_isr_handler(void *arg)
 {
     gpio_num_t gpio_num = (gpio_num_t)arg;
     xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
@@ -19,6 +19,8 @@ void launchpad_input_loop_poll(Launchpad_handle_t *hw_handle)
     Button_state_t curr_state;
     int master_vol_cnt, track_vol_cnt, seq_vol_cnt, bpm_cnt;
     int master_vol_cnt_prev = 0, track_vol_cnt_prev = 0, seq_vol_cnt_prev = 0, bpm_cnt_prev = 0;
+    uint16_t touch_state_prev = 0;
+    uint16_t touch_state = 0;
     while (true)
     {
         incenc_get_cnt(&hw_handle->master_vol_enc_handle, &master_vol_cnt);
@@ -59,6 +61,17 @@ void launchpad_input_loop_poll(Launchpad_handle_t *hw_handle)
             print_button_pressed(curr_state, hw_handle->button_state);
             hw_handle->button_state.IO2_GPA = curr_state.IO2_GPA;
         }
+        AT42QT2120_read(&hw_handle->touch_handle, AT42QT2120_KEY_STATUS, (uint8_t *)&touch_state, 2);
+        if (touch_state != touch_state_prev)
+        {
+            printf("Touch state changed: ");
+            for (int i = 0; i < 16; i++)
+            {
+                printf("%d", (touch_state >> i) & 0x01);
+            }
+            printf("\n");
+            touch_state_prev = touch_state;
+        }
     }
 }
 void launchpad_input_loop_interrupt(Launchpad_handle_t *hw_handle)
@@ -66,8 +79,9 @@ void launchpad_input_loop_interrupt(Launchpad_handle_t *hw_handle)
     gpio_num_t io_num;
     MCP23017_int_regs_t regs;
     ESP_ERROR_CHECK(gpio_install_isr_service(0));
-    ESP_ERROR_CHECK(gpio_isr_handler_add(io1_config.INTB_pin, gpio_isr_handler, (void *)io1_config.INTB_pin));
     ESP_ERROR_CHECK(gpio_isr_handler_add(io2_config.INTA_pin, gpio_isr_handler, (void *)io2_config.INTA_pin));
+    ESP_ERROR_CHECK(gpio_isr_handler_add(io1_config.INTB_pin, gpio_isr_handler, (void *)io1_config.INTB_pin));
+    ESP_ERROR_CHECK(gpio_isr_handler_add(touch_config.CHANGE_pin, gpio_isr_handler, (void *)touch_config.CHANGE_pin));
     while (true)
     {
 
@@ -116,6 +130,18 @@ void launchpad_input_loop_interrupt(Launchpad_handle_t *hw_handle)
                     }
                 }
             }
+            else if (io_num == touch_config.CHANGE_pin)
+            {
+                printf("Touch interrupt\n");
+                uint16_t keystatus = 0;
+                AT42QT2120_read(&hw_handle->touch_handle, AT42QT2120_KEY_STATUS, (uint8_t *)&keystatus, 2);
+                // print every bit of the keystatus
+                for (int i = 0; i < 16; i++)
+                {
+                    printf("%d", (keystatus >> i) & 0x01);
+                }
+                printf("\n");
+            }
             else
             {
                 ESP_LOGI(TAG, "Unknown interrupt");
@@ -124,12 +150,12 @@ void launchpad_input_loop_interrupt(Launchpad_handle_t *hw_handle)
     }
 }
 
-#define POLL 0
+#define POLL 1
 void launchpad_hal_input_task(void *args)
 {
     Launchpad_handle_t *hw_handle = (Launchpad_handle_t *)args;
 
-#ifdef POLL
+#if POLL == 1
     launchpad_input_loop_poll(hw_handle);
 #else
     launchpad_input_loop_interrupt(hw_handle);
@@ -140,13 +166,6 @@ void launchpad_hal_input_task(void *args)
 // io1: B:button
 esp_err_t launchpad_hal_setup_io1(Launchpad_handle_t *handle)
 {
-    gpio_config_t cfg = {
-        .pin_bit_mask = 1 << io1_config.INTB_pin,
-        .mode = GPIO_MODE_INPUT,
-        //.pull_up_en = GPIO_PULLUP_ENABLE,
-        .intr_type = GPIO_INTR_POSEDGE,
-    };
-    ESP_ERROR_CHECK(gpio_config(&cfg));
     //  Set all pins as input
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io1_handle, MCP23017_IODIRA, 0x00));
     // Inverted input logic state (buttons pull down)
@@ -166,19 +185,29 @@ esp_err_t launchpad_hal_setup_io1(Launchpad_handle_t *handle)
 // io2: A:3-7:button
 esp_err_t launchpad_hal_setup_io2(Launchpad_handle_t *handle)
 {
-    gpio_config_t cfg = {
-        .pin_bit_mask = 1 << io2_config.INTA_pin,
-        .mode = GPIO_MODE_INPUT,
-        //.pull_up_en = GPIO_PULLUP_ENABLE,
-        .intr_type = GPIO_INTR_POSEDGE,
-    };
-    ESP_ERROR_CHECK(gpio_config(&cfg));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_IODIRB, 0x0F));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_IODIRA, 0b11111110));
     // ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_IPOLA, 0b11111110));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_GPPUA, 0b11111110));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_GPINTENA, 0b11111110));
     ESP_ERROR_CHECK(MCP23017_write_reg(&handle->io2_handle, MCP23017_IOCON, 0b00000010));
+    return ESP_OK;
+}
+
+esp_err_t launchpad_hal_setup_touch(Launchpad_handle_t *handle)
+{
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+    AT42QT2120_write_1byte(&handle->touch_handle, AT42QT2120_CALIBRATE, 1);
+    AT42QT2120_write_1byte(&handle->touch_handle, AT42QT2120_LP, 1);
+    AT42QT2120_write_1byte(&handle->touch_handle, AT42QT2120_DI, 2);
+    uint8_t reg = 0;
+    for (int i = 0; i < 12; i++)
+    {
+        AT42QT2120_read(&handle->touch_handle, AT42QT2120_KEY0_CTRL + i, &reg, 1);
+        ESP_LOGI(TAG, "Key %d control: 0x%02X", i, reg);
+    }
+
+    ESP_LOGI(TAG, "Touch setup done");
     return ESP_OK;
 }
 
@@ -211,16 +240,25 @@ esp_err_t launchpad_hal_init(Launchpad_handle_t *handle)
         return ESP_FAIL;
     }
 
-    ESP_ERROR_CHECK(i2c_master_probe(bus, io1_config.i2c_addr, 1000));
-    ESP_ERROR_CHECK(MCP23017_init(bus, &io1_config, &handle->io1_handle));
-    ESP_ERROR_CHECK(launchpad_hal_setup_io1(handle));
+    gpio_config_t cfg = {
+        .pin_bit_mask = (1 << io2_config.INTA_pin) | (1 << io1_config.INTB_pin) | (1 << touch_config.CHANGE_pin),
+        .mode = GPIO_MODE_INPUT,
+        //.pull_up_en = GPIO_PULLUP_ENABLE,
+        .intr_type = GPIO_INTR_POSEDGE,
+    };
+    ESP_ERROR_CHECK(gpio_config(&cfg));
 
     ESP_ERROR_CHECK(i2c_master_probe(bus, io2_config.i2c_addr, 1000));
     ESP_ERROR_CHECK(MCP23017_init(bus, &io2_config, &handle->io2_handle));
     ESP_ERROR_CHECK(launchpad_hal_setup_io2(handle));
 
-    // ESP_ERROR_CHECK(i2c_master_probe(bus, AT42QT2120_I2C_ADDR, 1000));
+    ESP_ERROR_CHECK(i2c_master_probe(bus, io1_config.i2c_addr, 1000));
+    ESP_ERROR_CHECK(MCP23017_init(bus, &io1_config, &handle->io1_handle));
+    ESP_ERROR_CHECK(launchpad_hal_setup_io1(handle));
+
+    ESP_ERROR_CHECK(i2c_master_probe(bus, AT42QT2120_I2C_ADDR, 1000));
     ESP_ERROR_CHECK(AT42QT2120_init(bus, &touch_config, &handle->touch_handle));
+    launchpad_hal_setup_touch(handle);
 
     ESP_ERROR_CHECK(SDMMC_init(&sdmmc_config, &handle->sdmmc_handle));
 
